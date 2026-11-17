@@ -1,0 +1,14 @@
+{
+  "name": "Even Number of 0s AND 1s",
+  "states": ["qEE", "qOE", "qEO", "qOO"],
+  "alphabet": ["0", "1"],
+  "initialState": "qEE",
+  "finalStates": ["qEE"],
+  "transitions": {
+    "qEE": { "0": "qOE", "1": "qEO" },
+    "qOE": { "0": "qEE", "1": "qOO" },
+    "qEO": { "0": "qOO", "1": "qEE" },
+    "qOO": { "0": "qEO", "1": "qOE" }
+  }
+}
+

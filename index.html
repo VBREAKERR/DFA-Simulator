@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DFA Simulator | Automata & Formal Languages Theory</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body class="dark">
+    <!-- Main Application Header -->
+    <header>
+        <div class="brand-section">
+            <div class="brand-logo">δ</div>
+            <div class="brand-title">
+                <h1>DFA Simulator <span class="badge">FLAT / TOC</span></h1>
+            </div>
+        </div>
+
+        <!-- Preset Automata Selector -->
+        <div class="preset-dropdown-container">
+            <label for="presetSelect">Load DFA:</label>
+            <select id="presetSelect" class="preset-select">
+                <option value="custom_blank">✨ Blank Custom DFA (Create Your Own)</option>
+                <optgroup label="Textbook Problem Presets">
+                    <option value="ends_with_01" selected>Ends with "01"</option>
+                    <option value="contains_101">Contains Substring "101"</option>
+                    <option value="divisible_by_3">Binary Divisible by 3</option>
+                    <option value="even_zeros_even_ones">Even 0s and Even 1s (Parity)</option>
+                    <option value="starts_ends_same">Starts & Ends with Same Letter</option>
+                    <option value="minimization_demo">Minimization Demo (Redundant States)</option>
+                </optgroup>
+            </select>
+        </div>
+
+        <!-- Header Actions -->
+        <div class="header-actions">
+            <button id="btnOpenImageModal" class="btn btn-primary"
+                style="background: linear-gradient(135deg, #7c3aed, #db2777); border: none; font-weight: 700; box-shadow: 0 0 10px rgba(219, 39, 119, 0.4);"
+                title="Upload an image or photo of any DFA diagram to recognize & test it">
+                <span>📷</span> Scan from Image
+            </button>
+            <button id="btnOpenTextModal" class="btn" title="Paste text definition or transition rules">
+                <span>🔤</span> Text Spec
+            </button>
+            <button id="btnOpenMinimizer" class="btn" title="View Table-Filling Minimization Algorithm">
+                <span>⚡</span> Minimize DFA
+            </button>
+            <button id="btnComplement" class="btn" title="Compute Inverted Language Machine">
+                <span>🔄</span> Complement
+            </button>
+            <button id="btnOpenBatchTester" class="btn" title="Run Multiple Strings in Parallel">
+                <span>📋</span> Batch Test
+            </button>
+            <button id="btnOpenExportLaTeX" class="btn" title="Export Formal 5-Tuple & LaTeX Code">
+                <span>📑</span> LaTeX Export
+            </button>
+            <button id="btnExportJSON" class="btn" title="Save DFA as JSON file">
+                <span>💾</span> Export JSON
+            </button>
+            <label class="btn" title="Load DFA from JSON file" style="cursor: pointer;">
+                <span>📂</span> Import JSON
+                <input type="file" id="jsonFileInput" accept=".json" style="display: none;">
+            </label>
+            <button id="btnToggleAudio" class="btn btn-icon" title="Toggle Sound Effects">
+                <span id="audioIcon">🔊</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Workspace Layout -->
+    <div class="main-layout">
+        <!-- Left Sidebar: Automata Specification & Transition Matrix -->
+        <aside class="sidebar" id="sidebar">
+            <!-- 5-Tuple Formal Mathematical Definition -->
+            <div class="sidebar-section">
+                <div class="section-header">
+                    <span class="section-title">5-Tuple Specification</span>
+                    <span id="validationBadge" class="result-tag accepted">Valid DFA</span>
+                </div>
+                <div class="formal-tuple-grid">
+                    <div class="tuple-item">
+                        <span class="tuple-label">Q (States):</span>
+                        <span class="tuple-value" id="tupleQ">{ q0, q1, q2 }</span>
+                    </div>
+                    <div class="tuple-item">
+                        <span class="tuple-label">Σ (Alphabet):</span>
+                        <span class="tuple-value" id="tupleSigma">{ 0, 1 }</span>
+                    </div>
+                    <div class="tuple-item">
+                        <span class="tuple-label">q₀ (Start State):</span>
+                        <span class="tuple-value" id="tupleQ0">q0</span>
+                    </div>
+                    <div class="tuple-item">
+                        <span class="tuple-label">F (Final States):</span>
+                        <span class="tuple-value" id="tupleF">{ q2 }</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transition Matrix Table -->
+            <div class="sidebar-section">
+                <div class="section-header">
+                    <span class="section-title">Transition Matrix δ(q, a)</span>
+                    <button id="btnResetTable" class="btn" style="padding: 2px 8px; font-size: 11px;">Clear</button>
+                </div>
+                <div class="table-wrapper">
+                    <table class="matrix-table" id="transitionTable">
+                        <thead>
+                            <tr id="tableHeaderRow">
+                                <th>δ</th>
+                                <th>0</th>
+                                <th>1</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- State Management -->
+            <div class="sidebar-section">
+                <div class="section-header">
+                    <span class="section-title">States (Q)</span>
+                    <span style="font-size: 11px; color: var(--text-muted);">Double-ring = Final</span>
+                </div>
+                <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+                    <input type="text" id="newStateInput" placeholder="New state name (e.g. q3)" class="sim-input"
+                        style="padding: 6px 10px;">
+                    <button id="btnAddState" class="btn btn-primary" style="padding: 6px 12px;">+ Add</button>
+                </div>
+                <div class="state-list" id="statesContainer">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
+            <!-- Alphabet Management -->
+            <div class="sidebar-section">
+                <div class="section-header">
+                    <span class="section-title">Alphabet (Σ)</span>
+                </div>
+                <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+                    <input type="text" id="newSymbolInput" maxlength="1" placeholder="Char (e.g. 2, c)"
+                        class="sim-input" style="padding: 6px 10px; width: 80px;">
+                    <button id="btnAddSymbol" class="btn" style="padding: 6px 12px;">+ Add Symbol</button>
+                </div>
+                <div class="state-list" id="alphabetContainer">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+        </aside>
+
+        <!-- Center Workspace: Interactive Canvas Viewport -->
+        <main class="canvas-container">
+            <!-- Floating Canvas Toolbar -->
+            <div class="canvas-toolbar">
+                <button id="toolSelect" class="tool-btn active" title="Select & Drag States">
+                    <span>👆</span> Drag
+                </button>
+                <button id="toolAddState" class="tool-btn" title="Click to add a state">
+                    <span>➕</span> Add State
+                </button>
+                <button id="toolConnect" class="tool-btn" title="Click state A then state B to transition">
+                    <span>↗️</span> Connect
+                </button>
+                <div class="toolbar-divider"></div>
+                <button id="btnAutoLayout" class="tool-btn" title="Circular Auto-Layout">
+                    <span>🔄</span> Auto-Layout
+                </button>
+                <button id="btnFitView" class="tool-btn" title="Fit Entire Graph to View">
+                    <span>🎯</span> Fit View
+                </button>
+                <button id="btnExportPNG" class="tool-btn" title="Download High-Res PNG Image">
+                    <span>📷</span> Export PNG
+                </button>
+            </div>
+
+            <!-- Canvas Element -->
+            <canvas id="dfaCanvas"></canvas>
+
+            <!-- Bottom Floating Simulation Control Deck -->
+            <div class="sim-control-deck">
+                <!-- Physical String Tape Strip -->
+                <div class="tape-strip-container">
+                    <span class="tape-label">Input Tape:</span>
+                    <div class="tape-cells" id="tapeCells">
+                        <span style="font-size: 12px; color: var(--text-muted); font-style: italic;">Enter an input
+                            string below to inspect the tape</span>
+                    </div>
+                </div>
+
+                <!-- Simulation Controls & Input -->
+                <div class="sim-controls-row">
+                    <div class="sim-input-group">
+                        <input type="text" id="simInputString" placeholder="Enter string w (e.g. 101001)..."
+                            class="sim-input">
+                        <button id="btnLoadString" class="btn">Load Tape</button>
+                        <button id="btnInstantRun" class="btn btn-primary">Run Instant</button>
+                    </div>
+
+                    <div class="sim-playback-btns">
+                        <button id="btnStepBack" class="btn" title="Step Back (Left Arrow)">⏮ Step</button>
+                        <button id="btnPlayPause" class="btn btn-primary" title="Play / Pause (Spacebar)">▶
+                            Play</button>
+                        <button id="btnStepForward" class="btn" title="Step Forward (Right Arrow)">Step ⏭</button>
+                        <button id="btnResetSim" class="btn" title="Reset Simulation (R)">🔄 Reset</button>
+                    </div>
+
+                    <div class="speed-slider-group">
+                        <span>Speed:</span>sassdaa
+                        <input type="range" id="speedSlider" min="200" max="1800" step="100" value="700">
+                    </div>
+                </div>
+
+                <!-- Status & Step Explanation Banner -->
+                <div class="sim-status-banner">
+                    <div class="trace-info" id="traceInfo">
+                        Ready. Initial state: <span class="highlight">q0</span>
+                    </div>
+                    <div id="simResultBadge" class="result-tag" style="display: none;">
+                        Ready
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Right-Click Context Menu for State Nodes -->
+    <div id="contextMenu" class="context-menu">
+        <div class="menu-item" id="menuToggleStart"><span>🚩</span> Set as Start State</div>
+        <div class="menu-item" id="menuToggleFinal"><span>🎯</span> Toggle Final State</div>
+        <div class="menu-item" id="menuRenameState"><span>✏️</span> Rename State</div>
+        <div class="menu-divider"></div>
+        <div class="menu-item" id="menuDeleteState" style="color: var(--accent-red);"><span>🗑️</span> Delete State
+        </div>
+    </div>
+
+    <!-- Modal: DFA Minimization (Table-Filling Algorithm) -->
+    <div class="modal-overlay" id="minimizerModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">DFA Minimization (Table-Filling / Myhill-Nerode Algorithm)</h3>
+                <button class="btn btn-icon closeModalBtn">✕</button>
+            </div>
+            <div class="modal-body" id="minimizerModalBody">
+                <!-- Dynamically populated table & step results -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn closeModalBtn">Close</button>
+                <button id="btnApplyMinimizedDFA" class="btn btn-primary">Apply Minimized DFA</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Batch String Test Suite -->
+    <div class="modal-overlay" id="batchModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Batch String Test Suite</h3>
+                <button class="btn btn-icon closeModalBtn">✕</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
+                    Test a suite of strings simultaneously to verify your DFA language recognition.
+                </p>
+                <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                    <input type="text" id="newBatchInput" placeholder="Test string (e.g. 101)..." class="sim-input">
+                    <select id="newBatchExpected" class="preset-select">
+                        <option value="true">Expect ACCEPT</option>
+                        <option value="false">Expect REJECT</option>
+                    </select>
+                    <button id="btnAddBatchCase" class="btn">+ Add Case</button>
+                    <button id="btnRunBatchAll" class="btn btn-primary">Run All Tests</button>
+                </div>
+                <table class="batch-table" id="batchTable">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Input String w</th>
+                            <th>Expected</th>
+                            <th>Actual Result</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="batchTableBody">
+                        <!-- Populated dynamically -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <span id="batchSummary" style="font-size: 13px; font-weight: 600; margin-right: auto;"></span>
+                <button class="btn closeModalBtn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: LaTeX / Formal Report Generator -->
+    <div class="modal-overlay" id="latexModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Formal 5-Tuple & LaTeX Lab Report Export</h3>
+                <button class="btn btn-icon closeModalBtn">✕</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 10px;">
+                    Copy this pre-formatted LaTeX table and formal 5-tuple directly into your LaTeX or Overleaf automata
+                    report.
+                </p>
+                <div class="code-box" id="latexCodeBox"></div>
+            </div>
+            <div class="modal-footer">
+                <button id="btnCopyLaTeX" class="btn btn-primary">Copy LaTeX Code</button>
+                <button class="btn closeModalBtn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Scan & Recognize DFA from Image / Diagram -->
+    <div class="modal-overlay" id="imageModal">
+        <div class="modal-content" style="max-width: 860px;">
+            <div class="modal-header">
+                <h3 class="modal-title">📷 Universal Diagram Scanner: Automatic Image to DFA</h3>
+                <button class="btn btn-icon closeModalBtn">✕</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 14px;">
+                    Upload or paste (<strong>Ctrl + V</strong>) a photo, textbook diagram, or screenshot of <strong>any
+                        DFA</strong>. The built-in computer vision engine automatically analyzes the circles, start
+                    arrow, final double rings, and transitions instantly with <strong>zero keys or sign-ups
+                        required</strong>.
+                </p>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start;">
+                    <!-- Left: Upload & Preview -->
+                    <div>
+                        <div id="imageDropZone"
+                            style="border: 2px dashed var(--border-hover); border-radius: var(--radius-md); padding: 28px 16px; text-align: center; cursor: pointer; background: var(--bg-primary); transition: all 0.2s;">
+                            <div style="font-size: 36px; margin-bottom: 8px;">🖼️</div>
+                            <div
+                                style="font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">
+                                Click to Browse or Drag Diagram Image Here</div>
+                            <div style="font-size: 12px; color: var(--text-muted); margin-top: 6px;">Supports PNG, JPG,
+                                WebP — or press <strong>Ctrl+V</strong> to paste from clipboard</div>
+                            <input type="file" id="dfaImageInput" accept="image/*" style="display: none;">
+                        </div>
+
+                        <div id="imagePreviewContainer"
+                            style="display: none; margin-top: 12px; position: relative; border-radius: var(--radius-sm); overflow: hidden; border: 1px solid var(--border-color); max-height: 250px; background: #000; text-align: center;">
+                            <img id="imagePreview" src="" alt="DFA Preview"
+                                style="max-width: 100%; max-height: 250px; object-fit: contain;">
+                            <button id="btnRemoveImage"
+                                style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.75); color: #fff; border: none; border-radius: 50%; width: 26px; height: 26px; cursor: pointer; font-size: 13px;">✕</button>
+                        </div>
+
+                        <label
+                            style="display: flex; align-items: center; gap: 8px; margin-top: 14px; font-size: 12px; color: var(--text-secondary); cursor: pointer;">
+                            <input type="checkbox" id="chkBackdropOverlay" checked
+                                style="accent-color: var(--accent-blue);">
+                            <span>Overlay original diagram as semi-transparent canvas backdrop</span>
+                        </label>
+                    </div>
+
+                    <!-- Right: Automatic Recognition Results -->
+                    <div
+                        style="background: var(--bg-tertiary); padding: 18px; border-radius: var(--radius-md); border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 14px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <span
+                                style="font-size: 13px; font-weight: 700; color: var(--accent-cyan); text-transform: uppercase; letter-spacing: 0.5px;">
+                                Vision Analysis Engine
+                            </span>
+                            <span id="visionStatusBadge" class="result-tag"
+                                style="background: rgba(59, 130, 246, 0.15); color: var(--accent-blue);">
+                                Ready
+                            </span>
+                        </div>
+
+                        <!-- Recognition Output Summary -->
+                        <div id="aiScanStatus"
+                            style="font-size: 12px; font-family: var(--font-mono); min-height: 140px; background: var(--bg-primary); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color); color: var(--text-muted); line-height: 1.6; overflow-y: auto;">
+                            Drop or paste a DFA image on the left. The built-in vision engine will automatically detect
+                            circles, arrows, and double concentric accepting states.
+                        </div>
+
+                        <!-- Tuning Controls -->
+                        <div
+                            style="display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--text-secondary); border-top: 1px solid var(--border-color); padding-top: 10px;">
+                            <span>Alphabet Symbols:</span>
+                            <select id="visionAlphabetSelect" class="preset-select"
+                                style="padding: 4px 8px; font-size: 12px;">
+                                <option value="0,1">{ 0, 1 } (Binary)</option>
+                                <option value="a,b">{ a, b } (Alphabetic)</option>
+                                <option value="0,1,2">{ 0, 1, 2 } (Ternary)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn closeModalBtn">Cancel</button>
+                <button id="btnApplyImageDFA" class="btn btn-primary" style="padding: 8px 18px; font-weight: 700;"
+                    disabled>🚀 Load DFA into Simulator</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Text Spec Importer -->
+    <div class="modal-overlay" id="textSpecModal">
+        <div class="modal-content" style="max-width: 650px;">
+            <div class="modal-header">
+                <h3 class="modal-title">🔤 Universal Text Definition: Import Any DFA</h3>
+                <button class="btn btn-icon closeModalBtn">✕</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 13px; color: var(--text-secondary); margin-bottom: 12px;">
+                    Paste or type any DFA specification using standard formal notation.
+                </p>
+                <textarea id="textSpecInput" rows="11" class="code-box"
+                    style="width: 100%; resize: vertical; line-height: 1.5; outline: none; border-color: var(--border-color); padding: 12px;"
+                    spellcheck="false"># States (comma separated)
+Q: q0, q1, q2
+
+# Alphabet symbols
+Sigma: 0, 1
+
+# Start State
+q0: q0
+
+# Final / Accepting States
+F: q2
+
+# State Transitions: state, symbol -> next_state
+delta:
+q0, 0 -> q1
+q0, 1 -> q0
+q1, 0 -> q1
+q1, 1 -> q2
+q2, 0 -> q1
+q2, 1 -> q0</textarea>
+                <div id="textSpecError"
+                    style="color: var(--accent-red); font-size: 12px; margin-top: 8px; display: none;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn closeModalBtn">Cancel</button>
+                <button id="btnApplyTextSpec" class="btn btn-primary">Parse & Load DFA</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/dfa.js"></script>
+    <script src="js/vision.js"></script>
+    <script src="js/minimization.js"></script>
+    <script src="js/presets.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/graph.js"></script>
+    <script src="js/app.js"></script>
+</body>
+
+</html>
